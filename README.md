@@ -85,7 +85,7 @@ Prima di installare l'applicazione sul tuo computer, assicurati di avere install
 Segui questi semplici passaggi per installare e avviare il CRM sul tuo PC:
 
 ### Passo 1: Scarica o Clona il Progetto
-Se hai scaricato l'archivio ZIP da AI Studio o GitHub:
+Se hai scaricato l'archivio ZIP del progetto o da GitHub:
 - Estrai il file ZIP in una cartella a tua scelta sul tuo computer (es. `C:\Progetti\flashion-crm` oppure `~/flashion-crm`).
 
 Se utilizzi Git da terminale:
