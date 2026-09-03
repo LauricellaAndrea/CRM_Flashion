@@ -1,0 +1,6 @@
+{
+  "name": "CRM Asana List View",
+  "description": "Un potente CRM strutturato in stile Asana List View con sezioni comprimibili, editing in-line, drawer per la cronologia delle note e gestione completa (CRUD) dei task salvati in tempo reale su Firestore.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,72 @@
+{
+  "entities": {
+    "Project": {
+      "title": "Project",
+      "description": "A custom CRM project defining pipelines and custom fields",
+      "type": "object",
+      "properties": {
+        "nome": { "type": "string", "maxLength": 100 },
+        "categorie": { "type": "array" },
+        "campi": { "type": "array" },
+        "isDefault": { "type": "boolean" },
+        "createdAt": { "type": "object" }
+      },
+      "required": ["nome", "categorie", "campi"]
+    },
+    "Lead": {
+      "title": "Lead",
+      "description": "A boutique lead in the CRM",
+      "type": "object",
+      "properties": {
+        "projectId": { "type": "string", "maxLength": 128 },
+        "nomeAttivita": { "type": "string", "maxLength": 100 },
+        "stato": { "type": "string", "maxLength": 100 },
+        "ultimaNota": { "type": "string", "maxLength": 1000 },
+        "dati": { "type": "object" },
+        "createdAt": { "type": "object" },
+        "updatedAt": { "type": "object" }
+      },
+      "required": ["projectId", "nomeAttivita", "stato"]
+    },
+    "Note": {
+      "title": "Note",
+      "description": "A historic contact note/timeline entry for a lead",
+      "type": "object",
+      "properties": {
+        "testo": { "type": "string", "maxLength": 5000 },
+        "timestamp": { "type": "object" }
+      },
+      "required": ["testo"]
+    },
+    "Task": {
+      "title": "Task",
+      "description": "A task associated with a lead",
+      "type": "object",
+      "properties": {
+        "titolo": { "type": "string", "maxLength": 200 },
+        "dataScadenza": { "type": "string", "maxLength": 50 },
+        "completato": { "type": "boolean" },
+        "createdAt": { "type": "object" }
+      },
+      "required": ["titolo", "dataScadenza", "completato"]
+    }
+  },
+  "firestore": {
+    "projects/{projectId}": {
+      "schema": "Project",
+      "description": "Collection of custom CRM projects"
+    },
+    "leads/{leadId}": {
+      "schema": "Lead",
+      "description": "Collection of boutique leads"
+    },
+    "leads/{leadId}/notes/{noteId}": {
+      "schema": "Note",
+      "description": "Subcollection of historic notes for a lead"
+    },
+    "leads/{leadId}/tasks/{taskId}": {
+      "schema": "Task",
+      "description": "Subcollection of tasks for a lead"
+    }
+  }
+}
