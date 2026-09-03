@@ -1,4 +1,4 @@
-# ⚡ Flashion CRM (Asana List View)
+# ⚡ Flashion CRM
 
 > ⚠️ **AVVISO IMPORTANTE: Versione BETA (Work In Progress)**  
 > Questo software è attualmente in fase di sviluppo attivo (**Beta Working in Progress**). Nuove funzionalità, miglioramenti all'interfaccia e ottimizzazioni del database vengono rilasciate costantemente.
