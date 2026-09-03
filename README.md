@@ -105,12 +105,19 @@ npm install
 ```
 Questo comando scaricherà tutte le librerie necessarie (React, Vite, Firebase, Tailwind CSS, ecc.) nella cartella locale `node_modules`.
 
-### Passo 4: Verifica la Configurazione Firebase
-I parametri di connessione al database sono già configurati in `src/firebase.ts`.  
-Se desideri utilizzare un tuo database Firebase personale:
-1. Crea un progetto su [Firebase Console](https://console.firebase.google.com/).
-2. Crea un database **Cloud Firestore** e copia le credenziali web.
-3. Incolla le tue chiavi nell'oggetto `firebaseConfig` all'interno di `src/firebase.ts`.
+### Passo 4: Configurazione Opzionale (.env)
+Il CRM è già pre-configurato per funzionare subito senza passaggi manuali.
+Se desideri collegare un tuo database personale o sovrascrivere i parametri, puoi creare facoltativamente un file `.env` nella cartella radice:
+```env
+VITE_FIREBASE_API_KEY=la_tua_api_key
+VITE_FIREBASE_AUTH_DOMAIN=il_tuo_progetto.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=il_tuo_progetto_id
+VITE_FIREBASE_STORAGE_BUCKET=il_tuo_progetto.firebasestorage.app
+VITE_FIREBASE_MESSAGING_SENDER_ID=il_tuo_sender_id
+VITE_FIREBASE_APP_ID=la_tua_app_id
+VITE_FIREBASE_DATABASE_ID=il_tuo_database_id
+```
+> 🛡️ **Sicurezza**: Il file `.env` e le configurazioni private sono protetti da `.gitignore`, garantendo che nessun segreto o credenziale possa essere caricato per sbaglio sul repository GitHub.
 
 ### Passo 5: Avvia l'Applicazione in Locale
 Esegui il comando di sviluppo:
