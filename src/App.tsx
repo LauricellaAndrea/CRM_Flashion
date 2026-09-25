@@ -406,23 +406,22 @@ export default function App() {
     setIsNewCategoryModalOpen(true);
   };
 
-  const handleProjectCreated = (projectId: string) => {
-    // New project modal created the project, let's look for it in local list and select it
-    const created = projects.find(p => p.id === projectId);
-    if (created) {
-      setSelectedProject(created);
-    } else {
-      // Fallback: subscribe will catch it, let's listen
-      const checkAndOpen = setInterval(() => {
-        const found = projects.find(p => p.id === projectId);
-        if (found) {
-          setSelectedProject(found);
-          clearInterval(checkAndOpen);
-        }
-      }, 100);
-      setTimeout(() => clearInterval(checkAndOpen), 5000);
-    }
+  const handleProjectCreated = (newProject: Project) => {
+    // 1. Immediately select the newly created project so CRM view is ready with all categories and fields
+    setSelectedProject(newProject);
+    setProjectActiveTab('pipeline');
     setCurrentView('crm');
+
+    // 2. Also ensure it's in the projects list immediately
+    setProjects(prev => {
+      if (prev.some(p => p.id === newProject.id)) return prev;
+      return [...prev, newProject];
+    });
+
+    setToast({
+      message: `Benvenuto nel progetto "${newProject.nome}"!`,
+      type: "success"
+    });
   };
 
   // Filter leads by selected project AND deduplicate in-memory by activity name
@@ -796,19 +795,20 @@ export default function App() {
           )}
 
           {/* CRM ACTIVE VIEW MODE */}
-          {currentView === 'crm' && selectedProject && (
-            <>
-              {projectActiveTab === 'tasks' ? (
-                <ProjectTasksView
-                  activeProject={selectedProject}
-                  allTasks={allTasks}
-                  leads={activeLeads}
-                  onSelectLead={(lead) => setSelectedLead(lead)}
-                />
-              ) : (
-                <>
-                  {/* Metrics Panel */}
-                  <StatsBanner leads={activeLeads} activeProject={selectedProject} />
+          {currentView === 'crm' && (
+            selectedProject ? (
+              <>
+                {projectActiveTab === 'tasks' ? (
+                  <ProjectTasksView
+                    activeProject={selectedProject}
+                    allTasks={allTasks}
+                    leads={activeLeads}
+                    onSelectLead={(lead) => setSelectedLead(lead)}
+                  />
+                ) : (
+                  <>
+                    {/* Metrics Panel */}
+                    <StatsBanner leads={activeLeads} activeProject={selectedProject} />
 
               {/* Onboarding Guide when no data inside selected CRM */}
               {activeLeads.length === 0 && !isLoading && (
@@ -1239,6 +1239,24 @@ export default function App() {
                 </>
               )}
             </>
+            ) : (
+              /* Fallback loading state if project is not yet loaded in CRM view - NO BLACK SCREEN */
+              <div className="py-24 flex flex-col items-center justify-center text-center space-y-4 max-w-md mx-auto">
+                <div className="w-12 h-12 rounded-2xl bg-blue-950/40 border border-blue-900/30 text-blue-400 flex items-center justify-center mx-auto shadow-inner">
+                  <RefreshCw className="animate-spin text-blue-400" size={24} />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="text-base font-bold text-white">Caricamento del progetto in corso...</h3>
+                  <p className="text-xs text-zinc-400">Recupero configurazione e dati da Google Firestore.</p>
+                </div>
+                <button
+                  onClick={() => setCurrentView('home')}
+                  className="px-4 py-2 text-xs font-semibold bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-800 rounded-lg transition-colors cursor-pointer"
+                >
+                  Torna alla Dashboard Progetti
+                </button>
+              </div>
+            )
           )}
 
         </div>
