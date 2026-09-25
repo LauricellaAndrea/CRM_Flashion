@@ -233,7 +233,8 @@ export async function addLead(lead: Omit<Lead, "id" | "createdAt" | "updatedAt">
 export async function deduplicateLeadsInFirestore(projectId?: string): Promise<{ deletedCount: number }> {
   const leadsRef = collection(db, "leads");
   try {
-    const snapshot = await getDocs(leadsRef);
+    const q = projectId ? query(leadsRef, where("projectId", "==", projectId)) : leadsRef;
+    const snapshot = await getDocs(q);
     const seen = new Map<string, string>(); // key -> docId
     const duplicateDocIds: string[] = [];
 
@@ -469,67 +470,76 @@ export async function updateProject(projectId: string, updates: Partial<Omit<Pro
 }
 
 // Rename a list category and update all its leads
-export async function renameCategory(projectId: string, categories: string[], oldName: string, newName: string, leadsList: Lead[]): Promise<void> {
+export async function renameCategory(projectId: string, categories: string[], oldName: string, newName: string, leadsList?: Lead[]): Promise<void> {
   const updatedCategories = categories.map((cat) => cat === oldName ? newName : cat);
-  
-  const oldCleanName = getCategoryParts(oldName).name.toLowerCase().trim();
-  const projectLeads = leadsList.filter((l) => {
-    if (l.projectId !== projectId) return false;
-    const leadCleanName = getCategoryParts(l.stato).name.toLowerCase().trim();
-    return leadCleanName === oldCleanName;
-  });
   
   // Update project categories first
   await updateProject(projectId, { categorie: updatedCategories });
   
-  // Then update each lead in that category, catching errors individually so one failure does not halt everything
-  for (const lead of projectLeads) {
-    try {
-      await updateLeadStatus(lead.id, newName);
-    } catch (err) {
-      console.error(`Failed to update lead ${lead.id} status to ${newName}:`, err);
+  const oldCleanName = getCategoryParts(oldName).name.toLowerCase().trim();
+  
+  // Query Firestore directly for all project leads to ensure paginated subsets are not missed
+  const leadsRef = collection(db, "leads");
+  const q = query(leadsRef, where("projectId", "==", projectId));
+  const snapshot = await getDocs(q);
+
+  for (const docSnap of snapshot.docs) {
+    const data = docSnap.data();
+    const currentLeadState = data.stato || "";
+    if (getCategoryParts(currentLeadState).name.toLowerCase().trim() === oldCleanName) {
+      try {
+        await updateLeadStatus(docSnap.id, newName);
+      } catch (err) {
+        console.error(`Failed to update lead ${docSnap.id} status to ${newName}:`, err);
+      }
     }
   }
 }
 
 // Delete a list category and all its leads
-export async function deleteCategory(projectId: string, categories: string[], categoryName: string, leadsList: Lead[]): Promise<void> {
+export async function deleteCategory(projectId: string, categories: string[], categoryName: string, leadsList?: Lead[]): Promise<void> {
   const updatedCategories = categories.filter((cat) => cat !== categoryName);
-  
-  const targetCleanName = getCategoryParts(categoryName).name.toLowerCase().trim();
-  const projectLeads = leadsList.filter((l) => {
-    if (l.projectId !== projectId) return false;
-    const leadCleanName = getCategoryParts(l.stato).name.toLowerCase().trim();
-    return leadCleanName === targetCleanName;
-  });
   
   // Update project categories first
   await updateProject(projectId, { categorie: updatedCategories });
   
-  // Then delete each lead, catching errors individually
-  for (const lead of projectLeads) {
-    try {
-      await deleteLead(lead.id);
-    } catch (err) {
-      console.error(`Failed to delete lead ${lead.id}:`, err);
+  const targetCleanName = getCategoryParts(categoryName).name.toLowerCase().trim();
+  
+  // Query Firestore directly to delete all matching leads for this project
+  const leadsRef = collection(db, "leads");
+  const q = query(leadsRef, where("projectId", "==", projectId));
+  const snapshot = await getDocs(q);
+
+  for (const docSnap of snapshot.docs) {
+    const data = docSnap.data();
+    const currentLeadState = data.stato || "";
+    if (getCategoryParts(currentLeadState).name.toLowerCase().trim() === targetCleanName) {
+      try {
+        await deleteLead(docSnap.id);
+      } catch (err) {
+        console.error(`Failed to delete lead ${docSnap.id}:`, err);
+      }
     }
   }
 }
 
 // Delete all activities (leads) inside a category
-export async function deleteLeadsInCategory(projectId: string, categoryName: string, leadsList: Lead[]): Promise<void> {
+export async function deleteLeadsInCategory(projectId: string, categoryName: string, leadsList?: Lead[]): Promise<void> {
   const targetCleanName = getCategoryParts(categoryName).name.toLowerCase().trim();
-  const projectLeads = leadsList.filter((l) => {
-    if (l.projectId !== projectId) return false;
-    const leadCleanName = getCategoryParts(l.stato).name.toLowerCase().trim();
-    return leadCleanName === targetCleanName;
-  });
   
-  for (const lead of projectLeads) {
-    try {
-      await deleteLead(lead.id);
-    } catch (err) {
-      console.error(`Failed to delete lead ${lead.id}:`, err);
+  const leadsRef = collection(db, "leads");
+  const q = query(leadsRef, where("projectId", "==", projectId));
+  const snapshot = await getDocs(q);
+
+  for (const docSnap of snapshot.docs) {
+    const data = docSnap.data();
+    const currentLeadState = data.stato || "";
+    if (getCategoryParts(currentLeadState).name.toLowerCase().trim() === targetCleanName) {
+      try {
+        await deleteLead(docSnap.id);
+      } catch (err) {
+        console.error(`Failed to delete lead ${docSnap.id}:`, err);
+      }
     }
   }
 }

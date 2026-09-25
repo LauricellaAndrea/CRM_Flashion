@@ -39,7 +39,7 @@ export default function LeadTable({ leads, onSelectLead, selectedLeadId, onAddLe
                   <span className="italic">Nessuna attività presente in questa fase.</span>
                   <button
                     onClick={onAddLeadClick}
-                    className="flex items-center gap-1 px-3 py-1.5 text-xs text-blue-400 font-semibold hover:bg-blue-950/20 border border-blue-900/30 rounded-lg transition-all"
+                    className="flex items-center gap-1 px-3 py-1.5 text-xs text-blue-400 font-semibold hover:bg-blue-950/20 border border-blue-900/30 rounded-lg transition-all cursor-pointer"
                   >
                     <Plus size={12} />
                     <span>Aggiungi Attività</span>
