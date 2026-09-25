@@ -32,6 +32,7 @@ import CsvImportModal from "./components/CsvImportModal";
 import NewProjectModal from "./components/NewProjectModal";
 import NewCategoryModal from "./components/NewCategoryModal";
 import ProjectTasksView from "./components/ProjectTasksView";
+import DeleteProjectModal from "./components/DeleteProjectModal";
 
 export default function App() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -47,6 +48,11 @@ export default function App() {
   const [isCsvModalOpen, setIsCsvModalOpen] = useState(false);
   const [isNewProjectModalOpen, setIsNewProjectModalOpen] = useState(false);
   const [isNewCategoryModalOpen, setIsNewCategoryModalOpen] = useState(false);
+  
+  // State for project deletion confirmation modal
+  const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeletingProject, setIsDeletingProject] = useState(false);
   
   const [defaultAddStatus, setDefaultAddStatus] = useState("");
   const [isLoading, setIsLoading] = useState(true);
@@ -327,25 +333,40 @@ export default function App() {
     setCurrentView('crm');
   };
 
-  const handleDeleteProjectClick = async (projectId: string, e?: React.MouseEvent) => {
+  const handleOpenDeleteProjectModal = (project: Project, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    if (window.confirm("Sei sicuro di voler eliminare questo progetto e TUTTE le sue attività associate? Questa operazione è irreversibile.")) {
-      try {
-        await deleteProject(projectId);
-        
-        // Cascading deletion of all leads associated with this projectId
-        const projectLeads = leads.filter(l => l.projectId === projectId);
-        for (const lead of projectLeads) {
-          await deleteLead(lead.id);
-        }
+    setProjectToDelete(project);
+    setIsDeleteModalOpen(true);
+  };
 
-        if (selectedProject?.id === projectId) {
-          setSelectedProject(null);
-          setCurrentView('home');
-        }
-      } catch (err) {
-        console.error("Error deleting project:", err);
+  const handleConfirmDeleteProject = async () => {
+    if (!projectToDelete) return;
+    setIsDeletingProject(true);
+    try {
+      const targetProjId = projectToDelete.id;
+      const targetProjName = projectToDelete.nome;
+
+      await deleteProject(targetProjId);
+
+      if (selectedProject?.id === targetProjId) {
+        setSelectedProject(null);
+        setCurrentView('home');
       }
+
+      setIsDeleteModalOpen(false);
+      setProjectToDelete(null);
+      setToast({
+        message: `Il progetto "${targetProjName}" e tutti i suoi dati sono stati eliminati definitivamente da Firebase.`,
+        type: "success"
+      });
+    } catch (err) {
+      console.error("Error deleting project:", err);
+      setToast({
+        message: "Si è verificato un errore durante l'eliminazione del progetto da Firebase.",
+        type: "error"
+      });
+    } finally {
+      setIsDeletingProject(false);
     }
   };
 
@@ -583,8 +604,8 @@ export default function App() {
                   </button>
 
                   <button 
-                    onClick={(e) => handleDeleteProjectClick(selectedProject.id, e)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-red-950/10 hover:bg-red-950/30 text-red-400 hover:text-red-300 border border-red-900/20 hover:border-red-900/40 rounded-lg transition-all cursor-pointer"
+                    onClick={(e) => handleOpenDeleteProjectModal(selectedProject, e)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold bg-red-950/20 hover:bg-red-950/40 text-red-400 hover:text-red-300 border border-red-900/30 hover:border-red-900/50 rounded-lg transition-all cursor-pointer"
                     title="Elimina definitivamente l'intero progetto e tutte le sue attività"
                   >
                     <Trash2 size={14} />
@@ -735,13 +756,14 @@ export default function App() {
                               <h4 className="font-bold text-white text-base group-hover:text-blue-400 transition-colors">
                                 {proj.nome}
                               </h4>
-                              {/* Option to delete non-default project */}
+                              {/* Option to delete project */}
                               <button
-                                onClick={(e) => handleDeleteProjectClick(proj.id, e)}
+                                onClick={(e) => handleOpenDeleteProjectModal(proj, e)}
                                 title="Elimina Progetto"
-                                className="p-1 text-zinc-500 hover:text-red-400 hover:bg-red-950/20 rounded transition-all"
+                                className="flex items-center gap-1 px-2 py-1 text-zinc-400 hover:text-red-400 hover:bg-red-950/30 border border-zinc-800/60 hover:border-red-900/30 rounded-lg transition-all cursor-pointer text-xs"
                               >
-                                <Trash2 size={14} />
+                                <Trash2 size={13} />
+                                <span className="text-[11px] font-medium">Elimina</span>
                               </button>
                             </div>
 
@@ -1269,6 +1291,21 @@ export default function App() {
           onCategoryAdded={(newCat) => setToast({ message: `Lista "${newCat.split("|")[1] || newCat}" aggiunta con successo!`, type: "success" })}
         />
       )}
+
+      {/* Modal Dialog for permanently deleting a project and all its data */}
+      <DeleteProjectModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => {
+          if (!isDeletingProject) {
+            setIsDeleteModalOpen(false);
+            setProjectToDelete(null);
+          }
+        }}
+        onConfirm={handleConfirmDeleteProject}
+        project={projectToDelete}
+        leadsCount={projectToDelete ? leads.filter(l => l.projectId === projectToDelete.id).length : 0}
+        isDeleting={isDeletingProject}
+      />
 
       {/* Toast Notification */}
       {toast && (

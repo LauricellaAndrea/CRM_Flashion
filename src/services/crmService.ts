@@ -104,15 +104,54 @@ export async function addProject(project: Omit<Project, "id"> & { id?: string })
   }
 }
 
-// Delete a project
-export async function deleteProject(projectId: string): Promise<void> {
-  const projectDocRef = doc(db, "projects", projectId);
+// Delete a project and all its associated data (leads, notes, tasks) from Firebase
+export async function deleteProject(projectId: string): Promise<{ deletedLeadsCount: number }> {
   try {
+    // 1. Fetch all leads associated with this project
+    const leadsRef = collection(db, "leads");
+    const q = query(leadsRef, where("projectId", "==", projectId));
+    const leadsSnapshot = await getDocs(q);
+
+    let deletedLeadsCount = 0;
+
+    // 2. Delete each lead along with its subcollections (notes, tasks)
+    for (const leadDoc of leadsSnapshot.docs) {
+      const leadId = leadDoc.id;
+
+      // Delete notes subcollection
+      try {
+        const notesRef = collection(db, "leads", leadId, "notes");
+        const notesSnap = await getDocs(notesRef);
+        await Promise.all(notesSnap.docs.map((nDoc) => deleteDoc(nDoc.ref)));
+      } catch (err) {
+        console.warn(`Error deleting notes subcollection for lead ${leadId}:`, err);
+      }
+
+      // Delete tasks subcollection
+      try {
+        const tasksRef = collection(db, "leads", leadId, "tasks");
+        const tasksSnap = await getDocs(tasksRef);
+        await Promise.all(tasksSnap.docs.map((tDoc) => deleteDoc(tDoc.ref)));
+      } catch (err) {
+        console.warn(`Error deleting tasks subcollection for lead ${leadId}:`, err);
+      }
+
+      // Delete the lead document itself
+      await deleteDoc(leadDoc.ref);
+      deletedLeadsCount++;
+    }
+
+    // 3. Delete the project document itself
+    const projectDocRef = doc(db, "projects", projectId);
     await deleteDoc(projectDocRef);
+
+    return { deletedLeadsCount };
   } catch (error) {
     handleFirestoreError(error, OperationType.DELETE, `projects/${projectId}`);
   }
 }
+
+export const deleteProjectWithAllData = deleteProject;
 
 // Subscribe to all leads in real-time
 export function subscribeLeads(callback: (leads: Lead[]) => void): Unsubscribe {
@@ -250,10 +289,28 @@ export async function updateLeadStatus(leadId: string, newStato: LeadStato): Pro
   }
 }
 
-// Delete a lead
+// Delete a lead and its subcollections
 export async function deleteLead(leadId: string): Promise<void> {
   const leadDocRef = doc(db, "leads", leadId);
   try {
+    // Clean up notes subcollection
+    try {
+      const notesRef = collection(db, "leads", leadId, "notes");
+      const notesSnap = await getDocs(notesRef);
+      await Promise.all(notesSnap.docs.map((n) => deleteDoc(n.ref)));
+    } catch (e) {
+      console.warn(`Failed to clean notes for lead ${leadId}:`, e);
+    }
+
+    // Clean up tasks subcollection
+    try {
+      const tasksRef = collection(db, "leads", leadId, "tasks");
+      const tasksSnap = await getDocs(tasksRef);
+      await Promise.all(tasksSnap.docs.map((t) => deleteDoc(t.ref)));
+    } catch (e) {
+      console.warn(`Failed to clean tasks for lead ${leadId}:`, e);
+    }
+
     await deleteDoc(leadDocRef);
   } catch (error) {
     handleFirestoreError(error, OperationType.DELETE, `leads/${leadId}`);
